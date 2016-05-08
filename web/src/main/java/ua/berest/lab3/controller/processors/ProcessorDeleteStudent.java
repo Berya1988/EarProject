@@ -23,6 +23,6 @@ public class ProcessorDeleteStudent extends Processor {
             }
         }
 
-        return new ProcessorResult("?action=showAllStudents", "showAllStudents.jsp", false);
+        return new ProcessorResult("?action=showAllStudents&page=1", "showAllStudents.jsp", false);
     }
 }

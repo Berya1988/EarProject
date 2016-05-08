@@ -2,16 +2,16 @@ package com.berest.beans.student;
 
 //import org.apache.log4j.Logger;
 
+import com.berest.connection.DataSourceConnection;
+
 import javax.ejb.*;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.sql.DataSource;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Hashtable;
 import java.util.List;
+
+import static java.lang.Math.toIntExact;
 
 /**
  * Created by Oleg on 04.04.2016.
@@ -65,6 +65,26 @@ public class StudentBean implements EntityBean {
         this.context = null;
     }
 
+    @Override
+    public void ejbRemove() throws RemoveException, EJBException {
+        System.out.println("Student bean method ejbRemove() was called.");
+        //logger.info("Student bean method ejbRemove() was called.");
+        Connection connection = DataSourceConnection.getInstance().connect();
+        ResultSet result = null;
+        PreparedStatement statement = null;
+        this.studentId = (Integer) context.getPrimaryKey();
+        try {
+            statement = connection.prepareStatement("DELETE FROM STUDENTS WHERE STUDENT_ID = ?");
+            statement.setString(1, String.valueOf(this.studentId));
+            statement.execute();
+        } catch (SQLException e) {
+            throw new EJBException("Can't delete data due to SQLException", e);
+        }
+        finally {
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
+        }
+    }
+
     public void ejbActivate() throws EJBException {
         //logger.info("Student bean was activated.");
         System.out.println("Student bean was activated.");
@@ -79,7 +99,7 @@ public class StudentBean implements EntityBean {
     public void ejbLoad() throws EJBException {
         System.out.println("Student bean method ejbLoad() was called.");
         //logger.info("Student bean method ejbLoad() was called.");
-        Connection connection = connect();
+        Connection connection = DataSourceConnection.getInstance().connect();
         ResultSet result = null;
         PreparedStatement statement = null;
         this.studentId = (Integer) context.getPrimaryKey();
@@ -96,17 +116,17 @@ public class StudentBean implements EntityBean {
                 this.address = result.getString("ADDRESS");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new EJBException("Can't load data due to SQLException", e);
         }
         finally {
-            disconnect(connection, result, statement);
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
         }
     }
 
     public void ejbStore() throws EJBException{
         System.out.println("Student bean method ejbStore() was called.");
         //logger.info("Student bean method ejbStore() was called.");
-        Connection connection = connect();
+        Connection connection = DataSourceConnection.getInstance().connect();
         ResultSet result = null;
         PreparedStatement statement = null;
         try {
@@ -119,36 +139,18 @@ public class StudentBean implements EntityBean {
             statement.setInt(6, getStudentId());
             statement.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new EJBException("Can't store data due to SQLException", e);
         }
         finally {
-            disconnect(connection, result, statement);
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
         }
     }
 
-    public void ejbRemove() throws RemoveException, EJBException {
-        System.out.println("Student bean method ejbRemove() was called.");
-        //logger.info("Student bean method ejbRemove() was called.");
-        Connection connection = connect();
-        ResultSet result = null;
-        PreparedStatement statement = null;
-        this.studentId = (Integer) context.getPrimaryKey();
-        try {
-            statement = connection.prepareStatement("DELETE FROM STUDENTS WHERE STUDENT_ID = ?");
-            statement.setString(1, String.valueOf(this.studentId));
-            statement.execute();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        finally {
-            disconnect(connection, result, statement);
-        }
-    }
 
     public Integer ejbFindByPrimaryKey(Integer key) throws FinderException {
         System.out.println("Student bean method ejbFindByPrimaryKey() was called.");
         //logger.info("Student bean method ejbFindByPrimaryKey() was called.");
-        Connection connection = connect();
+        Connection connection = DataSourceConnection.getInstance().connect();
         ResultSet result = null;
         PreparedStatement statement = null;
         try {
@@ -156,56 +158,57 @@ public class StudentBean implements EntityBean {
             statement.setInt(1, key);
             result = statement.executeQuery();
             if(result.next()) {
-                this.studentId = result.getInt("STUDENT_ID");
-                this.name = result.getString("STUDENT_FIO");
-                this.group = result.getString("STUDENT_GROUP");
-                this.mail = result.getString("MAIL");
-                this.phone = result.getString("PHONE_NUMBER");
-                this.address = result.getString("ADDRESS");
+                return key;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            else {
+                throw new EJBException("Can't load data by id  due to SQLException");
+            }
+        } catch (SQLException e) {
+            throw new EJBException("Can't load data by id  due to SQLException", e);
         }
         finally {
-            disconnect(connection, result, statement);
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
         }
-        return key;
+
     }
 
     public Integer ejbCreate(Integer id, String name, String group, String mail, String phoneNo, String address) throws CreateException {
+        String key[] = {"STUDENT_ID"};
         System.out.println("Student bean method ejbCreate() was called.");
+        long k;
         //logger.info("Student bean method ejbCreate() was called.");
-        Connection connection = connect();
+
+        Connection connection = DataSourceConnection.getInstance().connect();
         ResultSet result = null;
         PreparedStatement statement = null;
         try {
-            statement = connection.prepareStatement("INSERT INTO STUDENTS (STUDENT_ID, STUDENT_FIO, STUDENT_GROUP, MAIL, PHONE_NUMBER, ADDRESS) VALUES (NULL, ?, ?, ?, ?, ?)");
+            statement = connection.prepareStatement("INSERT INTO STUDENTS (STUDENT_ID, STUDENT_FIO, STUDENT_GROUP, MAIL, PHONE_NUMBER, ADDRESS) VALUES (null, ?, ?, ?, ?, ?)", key);
             statement.setString(1, name);
             statement.setString(2, group);
             statement.setString(3, mail);
             statement.setString(4, phoneNo);
             statement.setString(5, address);
             statement.execute();
-            statement = connection.prepareStatement("SELECT * FROM STUDENTS WHERE STUDENT_FIO = ? AND STUDENT_GROUP = ? AND MAIL = ? AND PHONE_NUMBER = ? AND ADDRESS = ?");
-            statement.setString(1, name);
-            statement.setString(2, group);
-            statement.setString(3, mail);
-            statement.setString(4, phoneNo);
-            statement.setString(5, address);
-            result = statement.executeQuery();
-            if(result.next()) {
-                this.studentId = result.getInt("STUDENT_ID");
-                this.name = result.getString("STUDENT_FIO");
-                this.group = result.getString("STUDENT_GROUP");
-                this.mail = result.getString("MAIL");
-                this.phone = result.getString("PHONE_NUMBER");
-                this.address = result.getString("ADDRESS");
+            result = statement.getGeneratedKeys();
+            System.out.println("Auto Generated Primary Key 1: " + result.toString());
+            if (result.next()) {
+                k = result.getLong(1);
+                System.out.println("Auto Generated Primary Key " + k);
+
+                id = toIntExact(k);
+                this.studentId = id;
+                this.name = name;
+                this.group = group;
+                this.address = address;
+                this.phone = phoneNo;
+                this.mail = mail;
+                System.out.println("Auto Generated Primary Key int " + id);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new EJBException("Can't create new data due to SQLException", e);
         }
         finally {
-            disconnect(connection, result, statement);
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
         }
         return id;
     }
@@ -215,45 +218,11 @@ public class StudentBean implements EntityBean {
         //logger.info("Student bean method ejbPostCreate() was called.");
     }
 
-    private Connection connect(){
-        DataSource ds;
-        Context ctx;
-        Hashtable ht = new Hashtable();
-        Connection connection = null;
-
-        ht.put(Context.INITIAL_CONTEXT_FACTORY, "weblogic.jndi.WLInitialContextFactory");
-        ht.put(Context.PROVIDER_URL, "t3://localhost:7001");
-        try {
-            ctx = new InitialContext(ht);
-            ds = (javax.sql.DataSource) ctx.lookup("JNDI_Name0");
-            try {
-                connection = ds.getConnection();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        } catch (NamingException e) {
-            e.printStackTrace();
-        }
-        return connection;
-    }
-
-    private void disconnect(Connection connection, ResultSet result, Statement statement) {
-        try {
-            if(statement != null)
-                statement.close();
-            if(connection != null)
-                connection.close();
-            if(result != null)
-                result.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public Collection ejbFindAllStudents() {
+    public Collection ejbFindAllStudents() throws FinderException {
         System.out.println("Student bean method ejbFindAllStudents() was called.");
         //logger.info("Student bean method ejbFindAllStudents() was called.");
-        Connection connection = connect();
+        Connection connection = DataSourceConnection.getInstance().connect();
+        System.out.println("Connected!");
         ResultSet result = null;
         PreparedStatement statement = null;
         List<Integer> lStudent = new ArrayList<Integer>();
@@ -264,12 +233,81 @@ public class StudentBean implements EntityBean {
                 this.studentId = result.getInt("STUDENT_ID");
                 lStudent.add(this.studentId);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (SQLException e) {
+            throw new EJBException("Can't get data for all items due to SQLException", e);
         }
         finally {
-            disconnect(connection, result, statement);
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
         }
         return lStudent;
+    }
+
+    public Collection ejbFindAllStudentsByPage(int page, int range) throws FinderException {
+        Connection connection = DataSourceConnection.getInstance().connect();
+        ResultSet result = null;
+        PreparedStatement statement = null;
+        List<Integer> lStudent = new ArrayList<Integer>();
+        try {
+            statement = connection.prepareStatement("SELECT * FROM ( SELECT p.*, ROWNUM rn FROM (SELECT STUDENTS.* FROM STUDENTS ORDER BY STUDENT_FIO)p WHERE ROWNUM < 10000)WHERE rn BETWEEN ? AND ?");
+            statement.setInt(1, ((page - 1) * range + 1));
+            statement.setInt(2, (page * range));
+            //logger.info("From " + ((page - 1) * range + 1) + " to " + (page * range));
+            result = statement.executeQuery();
+            while(result.next()){
+                this.studentId = result.getInt("STUDENT_ID");
+                lStudent.add(this.studentId);           }
+        } catch (Exception e) {
+            throw new EJBException("Can't get data for all items due to SQLException", e);
+        }
+        finally {
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
+        }
+        return lStudent;
+    }
+
+
+    public void ejbUpdateById(Integer id, String name, String group, String mail, String phoneNo, String address) {
+        System.out.println("Student bean method update() was called.");
+        //logger.info("Student bean method ejbStore() was called.");
+        Connection connection = DataSourceConnection.getInstance().connect();
+        ResultSet result = null;
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement("UPDATE STUDENTS SET STUDENT_FIO = ?, STUDENT_GROUP = ?, MAIL = ?, PHONE_NUMBER = ?, ADDRESS = ? WHERE STUDENT_ID = ?");
+            statement.setString(1, getName());
+            statement.setString(2, getGroup());
+            statement.setString(3, getMail());
+            statement.setString(4, getPhone());
+            statement.setString(5, getAddress());
+            statement.setInt(6, getStudentId());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new EJBException("Can't store data due to SQLException", e);
+        }
+        finally {
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
+        }
+    }
+
+    public void ejbHomeUpdateById(Integer id, String name, String group, String mail, String phoneNo, String address) {
+        System.out.println("Student bean method update() was called.");
+        Connection connection = DataSourceConnection.getInstance().connect();
+        ResultSet result = null;
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement("UPDATE STUDENTS SET STUDENT_FIO = ?, STUDENT_GROUP = ?, MAIL = ?, PHONE_NUMBER = ?, ADDRESS = ? WHERE STUDENT_ID = ?");
+            statement.setString(1, name);
+            statement.setString(2, group);
+            statement.setString(3, mail);
+            statement.setString(4, phoneNo);
+            statement.setString(5, address);
+            statement.setInt(6, id);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new EJBException("Can't store data due to SQLException", e);
+        }
+        finally {
+            DataSourceConnection.getInstance().disconnect(connection, result, statement);
+        }
     }
 }

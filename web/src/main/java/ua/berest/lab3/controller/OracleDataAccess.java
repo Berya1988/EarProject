@@ -8,7 +8,9 @@ import ua.berest.lab3.model.Student;
 
 import java.rmi.RemoteException;
 import java.util.*;
+import javax.ejb.CreateException;
 import javax.ejb.FinderException;
+import javax.ejb.RemoveException;
 import javax.naming.*;
 import javax.rmi.PortableRemoteObject;
 
@@ -25,7 +27,6 @@ public class OracleDataAccess implements ModelDataAccess {
     public static OracleDataAccess getInstance() {
         return instance;
     }
-
 
     @Override
     public List<Student> getAllStudents() throws DataAccessException {
@@ -84,14 +85,20 @@ public class OracleDataAccess implements ModelDataAccess {
 
     @Override
     public void addStudent(Student student) throws DataAccessException {
+        Object objref = null;
         try {
             Context initial = new InitialContext();
-            Object objref = initial.lookup("StudentEJB");
-            StudentHome home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
-            home.create(null, student.getFio(), student.getGroup(), student.getMail(), student.getPhone(), student.getAddress());
-        } catch (Exception e)
-        {
+            objref = initial.lookup("StudentEJB");
+        } catch (NamingException e) {
             throw new DataAccessException("Can't insert new data", e);
+        }
+        StudentHome home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
+        try {
+            home.create(null, student.getFio(), student.getGroup(), student.getMail(), student.getPhone(), student.getAddress());
+        } catch (RemoteException e) {
+            throw new DataAccessException("Can't insert new data due to RemoteException", e);
+        } catch (CreateException e) {
+            throw new DataAccessException("Can't insert new data due to CreateException", e);
         }
     }
 
@@ -112,14 +119,26 @@ public class OracleDataAccess implements ModelDataAccess {
 
     @Override
     public void removeStudent(int studentId) throws DataAccessException {
+        Object objref = null;
         try {
             Context initial = new InitialContext();
-            Object objref = initial.lookup("StudentEJB");
-            StudentHome home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
-            home.remove(studentId);
-        } catch (Exception e)
-        {
+            objref = initial.lookup("StudentEJB");
+        } catch (NamingException e) {
             throw new DataAccessException("Can't insert new data", e);
+        }
+
+        StudentHome home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
+        try {
+            try {
+                home.findByPrimaryKey(studentId);
+            } catch (FinderException e) {
+                throw new DataAccessException("Can't delete data due to FinderException", e);
+            }
+            home.remove(studentId);
+        } catch (RemoteException e) {
+            throw new DataAccessException("Can't delete data due to RemoteException", e);
+        } catch (RemoveException e) {
+            throw new DataAccessException("Can't delete data due to RemoveException", e);
         }
     }
 
@@ -140,6 +159,19 @@ public class OracleDataAccess implements ModelDataAccess {
 
     @Override
     public void updateStudent(Student student) throws DataAccessException {
+        Object objref = null;
+        try {
+            Context initial = new InitialContext();
+            objref = initial.lookup("StudentEJB");
+        } catch (NamingException e) {
+            throw new DataAccessException("Can't insert new data", e);
+        }
+        StudentHome home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
+        try {
+            home.updateById(student.getStudentId(), student.getFio(), student.getGroup(), student.getMail(), student.getPhone(), student.getAddress());
+        } catch (RemoteException e) {
+            throw new DataAccessException("Can't update data due to RemoteException", e);
+        }
     }
 
     @Override
@@ -169,15 +201,17 @@ public class OracleDataAccess implements ModelDataAccess {
 
     @Override
     public Student getStudentById(int studentId) throws DataAccessException {
+        StudentRemote studentRemote;
         Student student;
         try {
             Context initial = new InitialContext();
             Object objref = initial.lookup("StudentEJB");
             StudentHome home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
-            student = (Student) home.findByPrimaryKey(studentId);
+            studentRemote = home.findByPrimaryKey(studentId);
+            student = new StudentImpl(studentRemote.getStudentId(), studentRemote.getName(), studentRemote.getGroup(), studentRemote.getMail(), studentRemote.getPhone(), studentRemote.getAddress());
         } catch (Exception e)
         {
-            throw new DataAccessException("Can't insert new data", e);
+            throw new DataAccessException("Can't get student by id", e);
         }
         return student;
     }
@@ -219,11 +253,60 @@ public class OracleDataAccess implements ModelDataAccess {
 
     @Override
     public int getTotalCountOfStudents() throws DataAccessException {
-        return 0;
+        ArrayList<StudentRemote> lId;
+        StudentHome home = null;
+        Context initial = null;
+        try {
+            initial = new InitialContext();
+            Object objref = initial.lookup("StudentEJB");
+            home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
+        } catch (NamingException e) {
+            throw new DataAccessException("Can't find object by name", e);
+        }
+        try {
+            lId = (ArrayList<StudentRemote>) home.findAllStudents();
+            System.out.println("Student id list: " + lId.size());
+        } catch (RemoteException e) {
+            throw new DataAccessException("Can't retrive data via RemoteException", e);
+        } catch (FinderException e) {
+            throw new DataAccessException("Can't retrive data via FinderException", e);
+        }
+
+        return lId.size();
     }
 
     @Override
     public List<Student> getAllStudentsByPage(int startIndex, int range) throws DataAccessException {
-        return null;
+        List<Student> lStudent = new ArrayList<Student>();
+        ArrayList<StudentRemote> lId;
+        StudentRemote studentRemote;
+        Student student;
+        StudentHome home = null;
+        Context initial = null;
+
+        try {
+            initial = new InitialContext();
+            Object objref = initial.lookup("StudentEJB");
+            home = (StudentHome) PortableRemoteObject.narrow(objref, StudentHome.class);
+        } catch (NamingException e) {
+            throw new DataAccessException("Can't find object by name", e);
+        }
+
+        try {
+            lId = (ArrayList<StudentRemote>) home.findAllStudentsByPage(startIndex, range);
+            System.out.println("Student id list: " + lId.size());
+            for (int i = 0; i < lId.size(); i++) {
+                System.out.println("Student was added with id: " + lId.get(i).getStudentId() + "; Student name by id: " + lId.get(i).getName());
+                studentRemote = home.findByPrimaryKey(lId.get(i).getStudentId());
+                student = new StudentImpl(studentRemote.getStudentId(), studentRemote.getName(), studentRemote.getGroup(), studentRemote.getMail(), studentRemote.getPhone(), studentRemote.getAddress());
+                lStudent.add(student);
+            }
+        } catch (RemoteException e) {
+            throw new DataAccessException("Can't retrive data via RemoteException", e);
+        } catch (FinderException e) {
+            throw new DataAccessException("Can't retrive data via FinderException", e);
+        }
+
+        return lStudent;
     }
 }

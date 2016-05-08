@@ -26,6 +26,6 @@ public class ProcessorAddStudent extends Processor {
         Student student = new StudentImpl(1, lastName, group, mail, phone, address);
         logger.info("FIO: " + student.getFio() + "Group: " + student.getGroup() + "Mail: " + student.getMail() + "Phone: " + student.getPhone() + "Address: " + student.getAddress());
         OracleDataAccess.getInstance().addStudent(student);
-        return new ProcessorResult("?action=showAllStudents", "showAllStudents.jsp", false);
+        return new ProcessorResult("?action=showAllStudents&page=1", "showAllStudents.jsp", false);
     }
 }

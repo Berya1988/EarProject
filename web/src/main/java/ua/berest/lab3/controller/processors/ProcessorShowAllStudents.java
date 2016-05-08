@@ -20,9 +20,9 @@ public class ProcessorShowAllStudents extends Processor {
     }
     public ProcessorResult process(HttpServletRequest request) throws DataAccessException {
         int page = Integer.parseInt(request.getParameter("page"));
-        //int studentsCount = OracleDataAccess.getInstance().getTotalCountOfStudents();
-        int studentsCount = 10;
-        int studentsPerPage = 20;
+        int studentsCount = OracleDataAccess.getInstance().getTotalCountOfStudents();
+        System.out.println("Count: " + studentsCount);
+        int studentsPerPage = 5;
         PaginationController paginationController = new PaginationController(studentsCount, studentsPerPage, page);
         request.getSession().setAttribute("paginationController", paginationController);
         List<Student> listOfAllStudents;
@@ -31,7 +31,7 @@ public class ProcessorShowAllStudents extends Processor {
         } else {
             listOfAllStudents = OracleDataAccess.getInstance().getAllStudentsByPage(page, studentsPerPage);
         }
-        logger.info("Size of student list: " + listOfAllStudents.size());
+        //logger.info("Size of student list: " + listOfAllStudents.size());
         request.getSession().setAttribute("listOfAllStudents", listOfAllStudents);
         return new ProcessorResult("pages/template.jsp", "showAllStudents.jsp", true);
     }

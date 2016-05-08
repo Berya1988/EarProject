@@ -24,6 +24,6 @@ public class ProcessorEditStudent extends Processor {
         String address = request.getParameter("addressName");
         Student student = new StudentImpl(id, lastName, group, mail, phone, address);
         OracleDataAccess.getInstance().updateStudent(student);
-        return new ProcessorResult("?action=showAllStudents", "showAllStudents.jsp", false);
+        return new ProcessorResult("?action=showAllStudents&page=1", "showAllStudents.jsp", false);
     }
 }
