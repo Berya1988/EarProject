@@ -42,7 +42,14 @@ public class DataSourceConnection {
     public Connection connect() {
         Connection connection = null;
         try {
+            System.out.println("Try to connect");
             connection = ds.getConnection();
+            if(connection.isClosed()) {
+                System.out.println("Bad news! Connection is closed!");
+            }
+            else {
+                System.out.println("Get connected!");
+            }
         } catch (SQLException e) {
             //logger.error("Threw a SQLException in DataSourceConnection class::" + e.getMessage(), e);
         }

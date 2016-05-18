@@ -10,19 +10,38 @@
             <ejb-name>StudentEJB</ejb-name>
             <home>com.berest.beans.student.StudentHome</home>
             <remote>com.berest.beans.student.StudentRemote</remote>
-            <local-home>com.berest.beans.student.LocalStudentHome</local-home>
-            <local>com.berest.beans.student.LocalStudent</local>
             <ejb-class>com.berest.beans.student.StudentBean</ejb-class>
             <persistence-type>Bean</persistence-type>
             <prim-key-class>java.lang.Integer</prim-key-class>
             <reentrant>true</reentrant>
-            <ejb-local-ref>
-                <ejb-ref-name>StudentEJB</ejb-ref-name>
-                <ejb-ref-type>Entity</ejb-ref-type>
-                <local-home>com.berest.beans.student.LocalStudentHome</local-home>
-                <local>com.berest.beans.student.LocalStudent</local>
-                <ejb-link>StudentEJB</ejb-link>
-            </ejb-local-ref>
+        </entity>
+        <entity>
+            <display-name>Location</display-name>
+            <ejb-name>LocationEJB</ejb-name>
+            <home>com.berest.beans.location.LocationHome</home>
+            <remote>com.berest.beans.location.LocationRemote</remote>
+            <ejb-class>com.berest.beans.location.LocationBean</ejb-class>
+            <persistence-type>Bean</persistence-type>
+            <prim-key-class>java.lang.Integer</prim-key-class>
+            <reentrant>true</reentrant>
+        </entity>
+        <entity>
+            <ejb-name>CourseEJB</ejb-name>
+            <home>com.berest.beans.course.CourseHome</home>
+            <remote>com.berest.beans.course.CourseRemote</remote>
+            <ejb-class>com.berest.beans.course.CourseBean</ejb-class>
+            <persistence-type>Bean</persistence-type>
+            <prim-key-class>java.lang.Integer</prim-key-class>
+            <reentrant>true</reentrant>
+        </entity>
+        <entity>
+            <ejb-name>GradeEJB</ejb-name>
+            <home>com.berest.beans.grade.GradeHome</home>
+            <remote>com.berest.beans.grade.GradeRemote</remote>
+            <ejb-class>com.berest.beans.grade.GradeBean</ejb-class>
+            <persistence-type>Bean</persistence-type>
+            <prim-key-class>java.lang.Integer</prim-key-class>
+            <reentrant>true</reentrant>
         </entity>
     </enterprise-beans>
 </ejb-jar>
